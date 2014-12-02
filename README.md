@@ -6,6 +6,12 @@ Simple Laravel steam web api
 Installation
 ============
 
-   require "ronjune/steam": "dev-master"
+```
+ require "ronjune/steam": "dev-master"
+```
 
-
+Examples
+========
+```
+TODO
+```
