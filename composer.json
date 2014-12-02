@@ -1,0 +1,20 @@
+{
+    "name": "ronjune/steam",
+    "description": "Laravel Steam Web API",
+    "authors": [
+        {
+            "name": "RonJune",
+            "email": "ronjune.lopez@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "illuminate/support": "4.2.*"
+    },
+    "autoload": {
+        "psr-0": {
+            "Ronjune\\Steam\\": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
