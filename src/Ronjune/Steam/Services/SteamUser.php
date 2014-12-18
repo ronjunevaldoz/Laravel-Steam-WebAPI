@@ -24,9 +24,7 @@ class SteamUser extends SteamWebAPI implements ISteamUser {
         'steamid' => $steamid
         ];
 
-        return  $this->setMethod(__FUNCTION__)
-        ->setParams( $parameters)
-        ->get();
+        return  $this->get('', __FUNCTION__, 1, $parameters);
     }
 
     public function getPlayerBans($steamids = '') {
@@ -34,19 +32,14 @@ class SteamUser extends SteamWebAPI implements ISteamUser {
         'steamids' => $steamids
         ];
 
-        return $this->setMethod(__FUNCTION__)
-        ->setParams( $parameters)
-        ->get();
+        return $this->get('', __FUNCTION__, 1, $parameters);
     }
 
     public function getPlayerSummaries($steamids) {
         $parameters = [
         'steamids' => $steamids
         ];
-        $request = $this->setMethod(__FUNCTION__)
-        ->setVersion('v0002')
-        ->setParams( $parameters)
-        ->get();
+        $request = $this->get('', __FUNCTION__, 2, $parameters);
         return is_object($request) ? $request->response->players : null;
     }
 
@@ -55,9 +48,7 @@ class SteamUser extends SteamWebAPI implements ISteamUser {
         'steamid' => $steamid
         ];
 
-        return $this->setMethod(__FUNCTION__)
-        ->setParams( $parameters)
-        ->get();
+        return $this->get('', __FUNCTION__, 1, $parameters);
     }
 
     public function resolveVanityURL($vanityurl, $url_type) {
@@ -66,9 +57,7 @@ class SteamUser extends SteamWebAPI implements ISteamUser {
         'url_type' => $url_type
         ];
 
-        return $this->setMethod(__FUNCTION__)
-        ->setParams( $parameters)
-        ->get();
+        return $this->get('', __FUNCTION__, 1, $parameters);
     }
 
 }

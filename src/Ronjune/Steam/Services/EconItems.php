@@ -25,29 +25,33 @@ class EconItems extends SteamWebAPI implements IEconItems {
             'steamid' => $steamid
         ];
 
-        $request = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->setParams( $parameters)
-                        ->get();
+        $request =  $this->get('', __FUNCTION__, 1, $parameters);
 
-        return is_object($request) ? $request->result->items : null;
+        // status 15 statusDetail Permission Denied
+        // if(is_object($request)   &&  isset($request->result)){
+        //     return $request->result;
+        //     // if($result->status == 1){
+        //     //     return $result->items;
+        //     // } else if($result->status == 15){
+        //     //     return $result->statusDetail;
+        //     // }
+        // }
+
+        return is_object($request)   &&  isset($request->result)  ? $request->result : null;
     }
 
 //@ TODO getSchema should download only the file and will be used in table seeder
     public function getSchema( $filename='') {
-          $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->saveTo($filename)
-                        ->get();
+          $this->get('', __FUNCTION__, 1, [], $filename);
 
     }
 
     public function getSchemaURL() {
-        return $this->setMethod(__FUNCTION__)->get();
+        return $this->get('', __FUNCTION__, 1);
     }
 
     public function getStoreMetaData() {
-        return $this->setMethod(__FUNCTION__)->get();
+        return $this->get('', __FUNCTION__, 1);
     }
 
 }

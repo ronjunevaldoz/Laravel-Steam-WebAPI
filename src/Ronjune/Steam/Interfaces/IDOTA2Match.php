@@ -9,7 +9,7 @@
 
 namespace Ronjune\Steam\Interfaces;
 
-interface IDOTA2Match {
+interface IDotA2Match {
 
     public function getLeagueListing();
 
@@ -17,7 +17,7 @@ interface IDOTA2Match {
 
     public function getMatchDetails($match_id);
 
-    public function getMatchHistory($hero_id, $game_mode, $skill, $min_players, $account_id, $league_id, $start_at_match_id, $matches_requested, $tournament_games_only);
+    public function getMatchHistory($options);
 
     public function getMatchHistoryBySequenceNum($start_at_match_seq_num, $matches_requested);
 

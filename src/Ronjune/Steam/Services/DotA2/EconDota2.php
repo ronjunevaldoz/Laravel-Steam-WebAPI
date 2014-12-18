@@ -41,10 +41,7 @@ class EconDota2 extends SteamWebAPI implements IEconDota2 {
     public function getRarities($language = '') {
         $rarities_path =  SteamUtil::storage('rarities', self::APPID);
         if (!file_exists( $rarities_path)) {
-            $raritiesJson = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->saveTo('570_rarities')
-                        ->get();
+            $raritiesJson = $this->get('',__FUNCTION__,1,$parameters, '570_rarities');
             return null;
         } else {
             $raritiesJson =  SteamUtil::getJson(self::APPID.'_rarities');

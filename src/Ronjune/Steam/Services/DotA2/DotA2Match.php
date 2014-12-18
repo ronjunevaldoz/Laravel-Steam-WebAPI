@@ -15,9 +15,9 @@
 namespace Ronjune\Steam\Services\DotA2;
 
 use Ronjune\Steam\Services\SteamWebAPI;
-use Ronjune\Steam\Interfaces\IDOTA2Match;
+use Ronjune\Steam\Interfaces\IDotA2Match;
 
-class DotA2Match extends SteamWebAPI implements IDOTA2Match {
+class DotA2Match extends SteamWebAPI implements IDotA2Match {
 
     const APPID = 570;
 
@@ -27,9 +27,7 @@ class DotA2Match extends SteamWebAPI implements IDOTA2Match {
     }
 
     public function getLeagueListing() {
-        $request = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->get();
+        $request = $this->get('',__FUNCTION__,1,$parameters);
         return is_object($request) ? $request->result->leagues : null;
     }
 
@@ -38,11 +36,7 @@ class DotA2Match extends SteamWebAPI implements IDOTA2Match {
             'league_id' => $league_id,
             'match_id' => $match_id
         ];
-        $request = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->setParams( $parameters)
-                        ->get();
-                        
+        $request = $this->get('',__FUNCTION__,1,$parameters);
         return is_object($request) && $request->result->status == 200 ? $request->result->games : null;
     }
 
@@ -50,10 +44,7 @@ class DotA2Match extends SteamWebAPI implements IDOTA2Match {
         $parameters = [
             'match_id' => $match_id
         ];
-        $request = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->setParams( $parameters)
-                        ->get();
+        $request = $this->get('',__FUNCTION__,1,$parameters);
         return is_object($request) ? $request->result : null;
     }
 
@@ -98,24 +89,27 @@ class DotA2Match extends SteamWebAPI implements IDOTA2Match {
 //          Amount of matches to include in results (default: 25).
 //          tournament_games_only (Optional) (string)
 //          Whether to limit results to tournament matches.
-    public function getMatchHistory($hero_id = '', $game_mode = '', $skill = '', $min_players = '', $account_id = '', $league_id = '', $start_at_match_id = '', $matches_requested = '', $tournament_games_only = '1') {
-        $parameters = [
-//            'date_min' => $yesterday,
-//            'date_max' => $tomorrow,
-            'hero_id' => $hero_id,
-            'game_mode' => $game_mode,
-            'skill' => $skill,
-            'min_players' => $min_players,
-            'account_id' => $account_id,
-            'league_id' => $league_id,
-            'start_at_match_id' => $start_at_match_id,
-            'matches_requested' => $matches_requested,
-            'tournament_games_only' => $tournament_games_only,
-        ];
-        $request = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->setParams( $parameters)
-                        ->get();
+    public function getMatchHistory($options = array()) {
+        if(!isset($options['tournament_games_only'])){
+            $options['tournament_games_only'] = 1;
+        }
+        if(!isset($options['matches_requested'])){
+            $options['matches_requested'] = 5;
+        }
+        // $options = [
+        //    'date_min' => $date_min,
+        //    'date_max' => $date_max,
+        //     'hero_id' => $hero_id,
+        //     'game_mode' => $game_mode,
+        //     'skill' => $skill,
+        //     'min_players' => $min_players,
+        //     'account_id' => $account_id,
+        //     'league_id' => $league_id,
+        //     'start_at_match_id' => $start_at_match_id,
+        //     'matches_requested' => $matches_requested,
+        //     'tournament_games_only' => $tournament_games_only,
+        // ];
+        $request = $this->get('',__FUNCTION__,1,$parameters);
         return is_object($request) ? $request->result : null;
     }
 
@@ -124,11 +118,8 @@ class DotA2Match extends SteamWebAPI implements IDOTA2Match {
             'start_at_match_seq_num' => $start_at_match_seq_num, 
             'matches_requested' => $matches_requested
         ]; 
-        $request = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->setParams( $parameters)
-                        ->get();
-        return is_object($request) ? $request->result : null;
+        $request = $this->get('',__FUNCTION__,1,$parameters);
+        return is_object($request) ? $request : null;
     }
 
     public function getScheduledLeagueGames($date_min = '', $date_max = '') {
@@ -136,10 +127,7 @@ class DotA2Match extends SteamWebAPI implements IDOTA2Match {
             'date_min' => $date_min,
             'date_max' => $date_max
         ];
-        $request = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->setParams( $parameters)
-                        ->get();
+        $request = $this->get('',__FUNCTION__,1,$parameters);
         return is_object($request) ? $request->result->games : null;
     }
 
@@ -148,20 +136,14 @@ class DotA2Match extends SteamWebAPI implements IDOTA2Match {
             'start_at_team_id' => $start_at_team_id,
             'teams_requested' => $teams_requested
         ];
-        $request = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->setParams( $parameters)
-                        ->get();
+        $request = $this->get('',__FUNCTION__,1,$parameters);
         return is_object($request) && $request->result->status == 1 ? $request->result->teams : null;
     }
 
     public function getTournamentPlayerStats($account_id = '', $league_id = '', $hero_id = '', $time_frame = '', $match_id = '') {
         $parameters = [
         ];
-        $request = $this->setMethod(__FUNCTION__)
-                        ->setVersion('v0001')
-                        ->setParams( $parameters)
-                        ->get();
+        $request = $this->get('',__FUNCTION__,1,$parameters);
         return is_object($request) ? $request : null;
     }
 

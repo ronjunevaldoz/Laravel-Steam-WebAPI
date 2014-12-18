@@ -12,62 +12,145 @@ namespace Ronjune\Steam\Services;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Config;
-
-use Ronjune\Steam\Services\SteamUtil;
-
-use Ronjune\Steam\Exceptions\SteamWebAPIRequestException;
-use Ronjune\Steam\Exceptions\SteamWebAPINotReadyException;
+use Ronjune\Steam\Exceptions\WebApiException;
 
 class SteamWebAPI {
 
-    const default_base_url = 'api.steampowered.com';
-    const default_appid = '570'; // dota2
-    const default_lang = 'en_US';
-    const default_key = '**YOUR API KEY HERE**';
-    const cookies_enabled = false;
+    const BASE_URL = 'api.steampowered.com';
+    const VERSION = 1;
+    const APPID = '570'; // dota2
+    const LANG = 'en_US';
+    const KEY = '**YOUR API KEY HERE**';
+    const SECURE = true;
+    const COOKIES_ENABLED = false;
+    const AUTO_RESULT = true; // always return object result if true.
 
-    protected $client = null;
+    private $auto = self::AUTO_RESULT;
+    private $client = null;
 
-    protected $key ='';
-    protected $appid = '';
-    protected $language = '';
+    private $base_url = '';
+    private $key ='';
+    private $appid = '';
+    private $language = '';
 
-    protected $interface = '';
-    protected $method = '';
-    protected $version = 'v0001';
+    private $interface = '';
+    private $method = '';
+    private $version = '';
 
-    protected $secure = true;
-    protected $ready = false;
+    private $secure = '';
 
-    protected $save_to = '';
-    protected $params = [];
-    protected $storage = '';
-    protected $errors = [];
+    private $save_to = '';
+    private $params = [];
+    private $storage = '';
+    private $generated_url = '';
 
-    protected $generated_url = '';
-    protected $body_only = false;
-
-
-    protected $response = null;
-
-    
+    private $response = null;
+    private $result = null; // string(body) json object or array
 
     public function __construct() {
-        $this->storage = Config::get('steam::config.storage', storage_path('steam'));
-        $this->key = Config::get('steam::config.api.key', self::default_key);
-        $this->appid = Config::get('steam::config.api.appid', self::default_appid);
-        $this->language = Config::get('steam::config.api.lang', self::default_lang);
-        $this->ready = true;
+        $storage = Config::get('steam::config.storage', storage_path('steam'));
+        $key = Config::get('steam::config.api.key', self::KEY);
+        $appid = Config::get('steam::config.api.appid', self::APPID);
+        $lang = Config::get('steam::config.api.lang', self::LANG);
+        $version =  Config::get('steam::config.api.version', self::VERSION);
+        $base_url = Config::get('steam::config.api.base_url', self::BASE_URL);
+
+        $this->setBaseUrl($base_url);
+        $this->setStorage($storage);
+        $this->setKey($key);
+        $this->setAppid($appid); 
+        $this->setLanguage($lang); 
+        $this->setVersion($version);
     }
 
-    // public  function getStorage($filename = '') {
-    //     return $this->storage . '/' . $filename;
-    // }
+    
+    public function request($httpmethod = 'get', $interface = '', $method = '', $version = '', $parameters = [], $save_to = '', $secure = '') {
+        
+        if(!isset($parameters['appid'])){
+            $parameters = array_add($parameters, 'appid', $this->appid);
+        }
 
-    // public  function setStorage($storage_path) {
-    //     $this->storage = $storage_path;
-    //     return  $this;
-    // }
+        if(!isset($parameters['language'])){
+            $parameters = array_add($parameters, 'language', $this->language);
+        }
+
+        if(!isset($parameters['key'])){
+            $parameters = array_add($parameters, 'key', $this->key);
+        }
+
+        $this->sanitizeRequestParameters($parameters);
+
+        $secure = empty($secure) ? self::SECURE : false;
+        $protocol = $secure ? 'https' : 'http';
+        $base_url = "$protocol://{$this->base_url}/{interface}/{method}/v{version}/";
+
+
+        $interface = empty($interface) ? $this->interface : $interface;
+        $method = empty($method) ? $this->method : $method;
+        $version = empty($version) ? $this->version : $version;
+
+        if(empty($interface)){
+            throw new WebApiException("Invalid or Empty Web Api Interface: $interface");
+        }
+        if(empty($method)){
+            throw new WebApiException("Invalid or Empty Web Api Method: $method");
+        }
+         if(empty($version)){
+            throw new WebApiException("Invalid or Empty Web Api Version: $version");
+        }
+        
+        $uri_segments = [
+            'interface' => $interface,
+            'method' => $method,
+            'version' => $version
+        ];
+
+        $base_url_options = [$base_url, $uri_segments];
+        $defaults = [];
+        $this->client = new Client([
+            'base_url' => $base_url_options,
+            'defaults' => $defaults
+            ]);
+
+        $options = [
+            'query' => $parameters,
+            'cookies' => self::COOKIES_ENABLED
+        ];
+
+        if (!empty($save_to)) {
+            $options['save_to'] = SteamUtil::storage($save_to);
+        } else {
+                if(!empty($this->save_to)){
+                 $options['save_to'] = SteamUtil::storage($this->save_to);
+             }
+         }
+
+         $request = $this->client->createRequest($httpmethod, null, $options);
+         $request->addHeader('Accept-Encoding', 'GZIP');
+         $request->addHeader('Content-Type', 'application/json');
+         $this->generated_url = $request->getUrl();
+
+        try {
+            $this->response = $this->client->send($request);
+        } catch (RequestException $e) {
+            
+        }
+
+        return $this;
+    }
+
+
+    private function sanitizeRequestParameters($parameters = []){
+        $parameters = empty($parameters) ? $this->params : $parameters;
+        foreach ($parameters as $index => $parameter) {
+            if (empty($parameter)) {
+                unset($parameter[$index]);
+            }
+        }
+    }
+
+
+
 
     /**
      * @return mixed
@@ -81,6 +164,7 @@ class SteamWebAPI {
      */
     public function setAppid($appid) {
         $this->appid = $appid;
+        return $this;
     }
 
     /**
@@ -95,6 +179,7 @@ class SteamWebAPI {
      */
     public  function setInterface($interface) {
         $this->interface = $interface;
+        return $this;
     }
 
     /**
@@ -123,7 +208,12 @@ class SteamWebAPI {
      * @param mixed $version
      */
     public  function setVersion($version) {
-        $this->version = $version;
+        if(!preg_match('/^[0-9]{1}$/', $version)){
+            throw new WebApiException("Invalid Web Api Version: $version, Expected numeric with maximum length of 1.");
+        } else {
+            $version = str_pad($version, 4, '0', STR_PAD_LEFT);
+            $this->version = $version;
+        }
         return $this;
     }
 
@@ -143,151 +233,56 @@ class SteamWebAPI {
     }
 
     /**
-     * @return string
-     */
-    public  function getSaveTo() {
-        return $this->save_to;
-    }
-
-    /**
      * @param string $version
      */
     public  function saveTo($path = '') {
-       $this->save_to = $path;
-       return $this;
-   }
+         $this->save_to = $path;
+         return $this;
+     }
 
 
-   public function get(){
-    $request = $this->request('get')->response;
-    return  (!is_null($request)) ?  $request->json([
-        'object' => true,
-        'big_int_strings' => true
-        ]) : null;
-}
-
-public function getBody(){
-    $request = $this->request('get')->response;
-    return  (!is_null($request)) ?  $request->getBody() : null;
-}
-public function getToArray(){
-    $request = $this->request('get')->response;
-    return  (!is_null($request)) ?  $request->json([
-        'object' => false,
-        'big_int_strings' => true
-        ]) : null;
-}
-
-public function request($httpmethod = 'get', $interface = '', $method = '', $version = 'v0001', $parameters = [], $save_to = '', $secure = false) {
-    if(!$this->ready){
-        throw new SteamWebAPINotReadyException("SteamWebAPI instance is not created!");
-    }
-    $parameters = empty($parameters) ? $this->getParams() : $parameters;
-
-    foreach ($parameters as $index => $value) {
-        if (empty($value)) {
-            unset($parameters[$index]);
+    public function get($interface = '', $method = '', $version = '', $parameters = [], $save_to = '', $secure = ''){
+        $this->result = $this->request('get',$interface,$method,$version,$parameters,$save_to,$secure)->getResponse();
+        if( $this->result != null){
+            return $this->auto ? $this->toObject() : $this;
+        } else {
+            return null;
         }
     }
-    $http = $secure ? 'https://' : 'http://';
 
-    $parameters = array_add($parameters, 'appid', $this->appid);
-    $parameters = array_add($parameters, 'language', $this->language);
-    $parameters = array_add($parameters, 'key', $this->key);
+    public function post($interface = '', $method = '', $version = '', $parameters = [], $save_to = '', $secure = ''){
+         $this->result = $this->request('post',$interface,$method,$version,$parameters,$save_to,$secure)->getResponse();
+        if( $this->result != null){
+            return $this->auto ? $this->toObject() : $this;
+        } else {
+            return null;
+        }
+    }
 
-    $base_url = $http . self::default_base_url . '/{interface}/{method}/{version}/';
+    public function setAuto($auto = true){
+        $this->auto = $auto;
+    }
 
-    $interface = empty($interface) ? $this->getInterface() : $interface;
-    $method = empty($method) ? $this->getMethod() : $method;
-    $version = empty($version) ? $this->getVersion() : $version;
+    public function getResult(){
+        return $this->result;
+    }
 
+    public function toBody(){
+        return $this->result->getBody();
+    }
 
-    $uri_segments = [
-    'interface' => $interface,
-    'method' => $method,
-    'version' => $version
-    ];
+    public function toArray(){
+         return $this->result->json([
+            'object' => false,
+            'big_int_strings' => true
+            ]);
+    }
 
-    $base_url_options = [$base_url, $uri_segments];
-    $defaults = [];
-    $this->client = new Client([
-        'base_url' => $base_url_options,
-        'defaults' => $defaults
-        ]);
-
-    $options = [
-    'query' => $parameters,
-    'cookies' => self::cookies_enabled
-    ];
-
-    if (!empty($save_to)) {
-        $options['save_to'] = SteamUtil::storage($save_to);
-    } else {
-        if(!empty($this->save_to)){
-           $options['save_to'] = SteamUtil::storage($this->save_to);
-       }
-   }
-
-
-
-   $request = $this->client->createRequest($httpmethod, null, $options);
-   $request->addHeader('Accept-Encoding', 'GZIP');
-   $request->addHeader('Content-Type', 'application/json');
-   $this->generated_url = $request->getUrl();
-   try {
-    $this->response = $this->client->send($request);
-} catch (RequestException $e) {
-    $message =  "Query failed: ".str_replace($this->key, '**VALID_HIDDEN**', $request->getUrl());
-                    // var_dump($e);
-                    // throw new SteamWebAPIRequestException( $e->status().$message);  
-}
-
-return $this;
-}
-
-public function getErrors() {
-    return $this->errors;
-}
-
-public function hasErrors() {
-    return count($this->errors) > 0;
-}
-
-
-
-
-
-
-//    public function get($interface = '') {
-//        $object = $this->getSupportedAPIList($interface);
-//        if (is_object($object)) {
-//            $dynamic = new Dynamic();
-//            foreach ($object->methods as $method) {
-//                $dynamic->{$method->name} = $method;
-//            }
-////            return $object->methods;
-//            return $dynamic;
-//        }
-//    }
-//
-//class Dynamic {
-//
-//    public function __call($method, $args) {
-//        if (isset($this->$method)) {
-//            $func = $this->$method;
-//            return call_user_func_array($func, $args);
-//        }
-//    }
-//
-//
-    /**
-     * Gets the value of client.
-     *
-     * @return mixed
-     */
-    public function getClient()
-    {
-        return $this->client;
+    public function toObject(){
+         return $this->result->json([
+            'object' => true,
+            'big_int_strings' => true
+            ]);
     }
 
     /**
@@ -311,26 +306,6 @@ public function hasErrors() {
     }
 
     /**
-     * Gets the value of secure.
-     *
-     * @return mixed
-     */
-    public function getSecure()
-    {
-        return $this->secure;
-    }
-
-    /**
-     * Gets the value of ready.
-     *
-     * @return mixed
-     */
-    public function getReady()
-    {
-        return $this->ready;
-    }
-
-    /**
      * Gets the value of generated_url.
      *
      * @return mixed
@@ -346,23 +321,13 @@ public function hasErrors() {
      * @return mixed
      */
     public function getResponse()
-    {
+    {   
+        // if($this->response == null){
+        //     throw new WebApiException("Web Api Response: null");
+        // }
         return $this->response;
     }
 
-    /**
-     * Sets the value of client.
-     *
-     * @param mixed $client the client
-     *
-     * @return self
-     */
-    protected function setClient($client)
-    {
-        $this->client = $client;
-
-        return $this;
-    }
 
     /**
      * Sets the value of key.
@@ -371,11 +336,19 @@ public function hasErrors() {
      *
      * @return self
      */
-    protected function setKey($key)
+    public function setKey($key)
     {
-        $this->key = $key;
-
+        if(!is_string($key) || empty($key) || !preg_match('/^[0-9A-F]{32}$/', $key)){
+            $key = $this->hideKey($key);
+            throw new WebApiException("Invalid or Empty Web Api Key: $key");
+        }else {
+             $this->key = $key;
+        }
         return $this;
+    }
+
+    private function hideKey($key, $mask ='**HIDDEN**'){
+        return str_replace($key, $mask, $key);
     }
 
     /**
@@ -385,117 +358,58 @@ public function hasErrors() {
      *
      * @return self
      */
-    protected function setLanguage($language)
+    public function setLanguage($language)
     {
         $this->language = $language;
 
         return $this;
     }
 
-    /**
-     * Sets the value of secure.
-     *
-     * @param mixed $secure the secure
-     *
-     * @return self
-     */
-    protected function setSecure($secure)
-    {
-        $this->secure = $secure;
-
-        return $this;
-    }
 
     /**
-     * Sets the value of ready.
-     *
-     * @param mixed $ready the ready
-     *
-     * @return self
-     */
-    protected function setReady($ready)
-    {
-        $this->ready = $ready;
-
-        return $this;
-    }
-
-    /**
-     * Sets the value of save_to.
-     *
-     * @param mixed $save_to the save to
-     *
-     * @return self
-     */
-    protected function setSaveTo($save_to)
-    {
-        $this->save_to = $save_to;
-
-        return $this;
-    }
-
-    /**
-     * Sets the value of errors.
-     *
-     * @param mixed $errors the errors
-     *
-     * @return self
-     */
-    protected function setErrors($errors)
-    {
-        $this->errors = $errors;
-
-        return $this;
-    }
-
-    /**
-     * Sets the value of generated_url.
-     *
-     * @param mixed $generated_url the generated url
-     *
-     * @return self
-     */
-    protected function setGeneratedUrl($generated_url)
-    {
-        $this->generated_url = $generated_url;
-
-        return $this;
-    }
-
-    /**
-     * Gets the value of body_only.
+     * Gets the value of base_url.
      *
      * @return mixed
      */
-    public function getBodyOnly()
+    public function getBaseUrl()
     {
-        return $this->body_only;
+        return $this->base_url;
     }
 
     /**
-     * Sets the value of body_only.
+     * Sets the value of base_url.
      *
-     * @param mixed $body_only the body only
+     * @param mixed $base_url the base url
      *
      * @return self
      */
-    protected function setBodyOnly($body_only)
+    public function setBaseUrl($base_url)
     {
-        $this->body_only = $body_only;
+        $this->base_url = $base_url;
 
         return $this;
     }
 
     /**
-     * Sets the value of response.
+     * Gets the value of storage.
      *
-     * @param mixed $response the response
+     * @return mixed
+     */
+    public function getStorage()
+    {
+        return $this->storage;
+    }
+
+    /**
+     * Sets the value of storage.
+     *
+     * @param mixed $storage the storage
      *
      * @return self
      */
-    protected function setResponse($response)
+    public function setStorage($storage)
     {
-        $this->response = $response;
+        $this->storage = $storage;
 
         return $this;
     }

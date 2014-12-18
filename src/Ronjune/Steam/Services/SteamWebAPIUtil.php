@@ -25,11 +25,11 @@ class SteamWebAPIUtil extends SteamWebAPI implements ISteamWebAPIUtil {
     }
 
     public function getServerInfo() {
-        return $response = $this->setMethod(__FUNCTION__)->setVersion('v0001')->get();
+        return $response = $this->get('', __FUNCTION__, 1, $parameters);
     }
 
     public function getSupportedAPIList($name = '') {
-        $response = $this->setMethod(__FUNCTION__)->setVersion('v0001')->get();
+        $response = $this->get('', __FUNCTION__, 1, $parameters);
         $apilist = $response->apilist;
 
         foreach ($apilist->interfaces as $index => $interface) {

@@ -28,13 +28,18 @@ class AppSchema {
         $this->app_items_game_vdf_path = SteamUtil::storage(self::APP_SCHEMA_ITEMS_GAME_VDF);
     }
 
+    public function deleteFiles(){
+        \File::delete($this->app_schema_path);
+        \File::delete($this->app_items_game_json_path);
+        \File::delete($this->app_items_game_vdf_path);
+    }
 
 	public function create(){
 		ini_set('max_execution_time', 0);
 		if (!file_exists($this->app_schema_path)) {
             // Download and Save schema to steam storage
 
-			EconItems::getSchema(self::APP_SCHEMA_JSON);
+			\EconItems::getSchema(self::APP_SCHEMA_JSON);
 		}
 
 		$json = $this->fetch();

@@ -31,7 +31,7 @@ class SteamEconomy extends SteamWebAPI implements ISteamEconomy{
 
 
 
-        return $this->setMethod(__FUNCTION__)->setVersion('v0001')->setParams($parameters)->get();
+        return $this->get('', __FUNCTION__, 1, $parameters);
     }
 
 
@@ -49,8 +49,7 @@ class SteamEconomy extends SteamWebAPI implements ISteamEconomy{
        $asset_prices_path =  SteamUtil::storage( $filename, $appid);
         if (!file_exists( $asset_prices_path)) {
            ini_set('max_execution_time', 1200);
-           $this->setMethod(__FUNCTION__)->setVersion('v0001')->setParams($parameters)->saveTo( $asset_prices_path)->get();
-           
+           $this->get('', __FUNCTION__, 1, $parameters, $asset_prices_path);
        }
 
        $asset_prices_json =  SteamUtil::getJson( $filename);

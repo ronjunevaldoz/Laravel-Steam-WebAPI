@@ -38,7 +38,7 @@ class SteamRemoteStorage extends SteamWebAPI implements ISteamRemoteStorage {
             'ugcid' => $ugcid,
             'appid' => $appid
         ];
-        $request = $this->setMethod(__FUNCTION__)->setVersion('v0001')->setParams($parameters)->get();
+        $request = $this->get('', __FUNCTION__, 1, $parameters);
         
         return is_object($request) && isset($request->data) ? $request->data : null;
     }

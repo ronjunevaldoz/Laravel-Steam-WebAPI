@@ -5,7 +5,7 @@
 
 namespace Ronjune\Steam\Exceptions;
 
-class SteamWebAPINotReadyException extends \Exception
+class WebApiException extends \Exception
 {
 
 } 
